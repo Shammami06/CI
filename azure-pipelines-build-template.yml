@@ -1,5 +1,5 @@
 trigger:
-- '*'
+- main  # Adjust this to your branch name
 
 pr:
 - '*'
@@ -8,22 +8,6 @@ pool:
   vmImage: 'ubuntu-latest'
 
 steps:
-- script: npm install
-  displayName: 'Install dependencies'
-
-- script: npm test
-  displayName: 'Run tests'
-
-- task: ArchiveFiles@2
-  inputs:
-    rootFolderOrFile: '$(Build.SourcesDirectory)'
-    includeRootFolder: false
-    archiveFile: '$(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip'
-    replaceExistingArchive: true
-
-- publish: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
-  artifact: drop
-  displayName: 'Publish artifact'
-
-- script: echo 'CI/CD completed successfully'
-  displayName: 'Final task'
+- script: |
+    # Your build script goes here
+  displayName: 'Build and Test'
