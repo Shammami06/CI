@@ -1,67 +1,39 @@
-parameters:
-  name: ''
+name: CI/CD with Azure DevOps
+
+on:
+  push:
+    branches:
+      - main
+
 jobs:
-  - job: ${{ parameters.name }}
-    pool:
-      vmImage: 'ubuntu-latest'
-      demands:
-      - npm
-      - node.js
-      - java
-    variables:
-      npm_config_cache: $(Pipeline.Workspace)/.npm
+  build:
+    runs-on: ubuntu-latest
 
     steps:
-      - checkout: self
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - task: NodeTool@0
-        displayName: 'Use Node 10.x'
-        inputs:
-          versionSpec: 10.x
-          checkLatest: true
+    - name: Set up Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14'
 
-      - task: CacheBeta@1
-        inputs:
-          key: npm | $(Agent.OS) | package-lock.json
-          path: $(npm_config_cache)
-          cacheHitVar: CACHE_RESTORED
-      - script: npm ci
-        displayName: 'npm ci'
+    - name: Install dependencies
+      run: npm install
 
-      - task: Gulp@0
-        displayName: 'Bundle project'
-        inputs:
-          targets: bundle
-          arguments: '--ship'
+    - name: Build and Test
+      run: npm run build
 
-      - script: npm test
-        displayName: 'npm test'
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
 
-      - task: PublishTestResults@2
-        displayName: Publish test results
-        inputs:
-          testResultsFormat: JUnit
-          testResultsFiles: '**/junit.xml'
-          #failTaskOnFailedTests: true #if we want to fail the build on failed unit tests
+    steps:
+    - name: Deploy to Azure DevOps
+      uses: azure/CLI@v1
+      with:
+        azcliversion: 2.30.0
+        inlineScript: |
+          az login --service-principal -u ${{ secrets.AZURE_SERVICE_PRINCIPAL_ID }} -p ${{ secrets.AZURE_SERVICE_PRINCIPAL_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
+          az acr build --registry myregistry --image myimage:v${{ github.run_number }} .
 
-      - task: PublishCodeCoverageResults@1
-        displayName: 'Publish code coverage results'
-        inputs:
-          codeCoverageTool: Cobertura
-          summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/*coverage.xml'
-
-      - task: Gulp@0
-        displayName: 'Package Solution'
-        inputs:
-          targets: 'package-solution'
-          arguments: '--ship'
-
-      - task: CopyFiles@2
-        displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
-        inputs:
-          Contents: |
-            sharepoint/**/*.sppkg
-          TargetFolder: '$(Build.ArtifactStagingDirectory)'
-
-      - task: PublishBuildArtifacts@1
-        displayName: 'Publish Artifact: drop'
