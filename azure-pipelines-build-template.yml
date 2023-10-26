@@ -1,39 +1,15 @@
-name: CI/CD with Azure DevOps
+trigger:
+- '*'
 
-on:
-  push:
-    branches:
-      - main
+pr:
+- '*'
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+pool:
+  vmImage: 'ubuntu-latest'
 
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+steps:
+- script: echo Hello from Azure DevOps!
+  displayName: 'Run a script'
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '14'
-
-    - name: Install dependencies
-      run: npm install
-
-    - name: Build and Test
-      run: npm run build
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Deploy to Azure DevOps
-      uses: azure/CLI@v1
-      with:
-        azcliversion: 2.30.0
-        inlineScript: |
-          az login --service-principal -u ${{ secrets.AZURE_SERVICE_PRINCIPAL_ID }} -p ${{ secrets.AZURE_SERVICE_PRINCIPAL_SECRET }} --tenant ${{ secrets.AZURE_TENANT_ID }}
-          az acr build --registry myregistry --image myimage:v${{ github.run_number }} .
-
+- script: echo Deploy your application here
+  displayName: 'Deploy'
